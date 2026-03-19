@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #1a1a1a;
+  --text: #ffffff;
+  --text-secondary: #d4d4d4;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Montserrat', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
