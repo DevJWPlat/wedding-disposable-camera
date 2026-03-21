@@ -1,0 +1,22 @@
+{
+  "name": "wedding-camera",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-03-20",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wedding-camera-db",
+      "database_id": "4911bba3-8b80-4513-844f-c947e1e39a89"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "PHOTOS",
+      "bucket_name": "wedding-camera-photos"
+    }
+  ]
+}
