@@ -1,17 +1,24 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { API_BASE_URL } from '../utils/api.js'
 import { generateId } from '../utils/id.js'
 
 const router = useRouter()
 
+const videoRef = ref(null)
+const canvasRef = ref(null)
 const fileInput = ref(null)
+
 const shotsRemaining = ref(25)
 const loading = ref(true)
 const uploading = ref(false)
 const error = ref('')
 const session = ref(null)
+
+const cameraReady = ref(false)
+const usingFallbackCapture = ref(false)
+const streamRef = ref(null)
 
 const STORAGE_KEYS = {
   deviceToken: 'wedding_camera_device_token',
@@ -95,19 +102,88 @@ async function startSession() {
   }
 }
 
-function openCamera() {
-  if (shotsRemaining.value <= 0 || loading.value || uploading.value) return
-  fileInput.value?.click()
+async function startLiveCamera() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    usingFallbackCapture.value = true
+    return
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' },
+      },
+      audio: false,
+    })
+
+    streamRef.value = stream
+
+    if (videoRef.value) {
+      videoRef.value.srcObject = stream
+      await videoRef.value.play()
+      cameraReady.value = true
+      usingFallbackCapture.value = false
+    }
+  } catch (err) {
+    console.error('Live camera failed, using fallback:', err)
+    usingFallbackCapture.value = true
+    cameraReady.value = false
+  }
 }
 
-async function handleFileChange(event) {
-  const file = event.target.files?.[0]
+function stopLiveCamera() {
+  if (streamRef.value) {
+    streamRef.value.getTracks().forEach((track) => track.stop())
+    streamRef.value = null
+  }
+}
 
-  if (!file) return
-
+async function uploadBlob(blob, filename = 'capture.jpg') {
   if (!session.value?.id) {
-    error.value = 'No active session found'
-    event.target.value = ''
+    throw new Error('No active session found')
+  }
+
+  const file = new File([blob], filename, {
+    type: blob.type || 'image/jpeg',
+  })
+
+  const formData = new FormData()
+  formData.append('sessionId', session.value.id)
+  formData.append('photo', file)
+
+  const response = await fetch(`${API_BASE_URL}/api/photo/upload`, {
+    method: 'POST',
+    body: formData,
+  })
+
+  const data = await parseJsonResponse(response)
+
+  if (!data?.ok || !data?.session) {
+    throw new Error(data?.error || 'Upload failed')
+  }
+
+  session.value = data.session
+  shotsRemaining.value = Number(data.session.shots_remaining || 0)
+
+  if ('vibrate' in navigator) {
+    navigator.vibrate(50)
+  }
+
+  if (shotsRemaining.value <= 0) {
+    router.push('/finished')
+  }
+}
+
+async function capturePhoto() {
+  if (shotsRemaining.value <= 0 || loading.value || uploading.value) return
+
+  if (usingFallbackCapture.value || !cameraReady.value) {
+    fileInput.value?.click()
+    return
+  }
+
+  if (!videoRef.value || !canvasRef.value) {
+    error.value = 'Camera is not ready'
     return
   }
 
@@ -115,31 +191,55 @@ async function handleFileChange(event) {
   error.value = ''
 
   try {
-    const formData = new FormData()
-    formData.append('sessionId', session.value.id)
-    formData.append('photo', file)
+    const video = videoRef.value
+    const canvas = canvasRef.value
+    const context = canvas.getContext('2d')
 
-    const response = await fetch(`${API_BASE_URL}/api/photo/upload`, {
-      method: 'POST',
-      body: formData,
+    if (!context) {
+      throw new Error('Could not prepare image capture')
+    }
+
+    const width = video.videoWidth
+    const height = video.videoHeight
+
+    if (!width || !height) {
+      throw new Error('Camera frame is not ready yet')
+    }
+
+    canvas.width = width
+    canvas.height = height
+    context.drawImage(video, 0, 0, width, height)
+
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (result) => {
+          if (result) resolve(result)
+          else reject(new Error('Failed to create image'))
+        },
+        'image/jpeg',
+        0.9,
+      )
     })
 
-    const data = await parseJsonResponse(response)
+    await uploadBlob(blob, `capture-${Date.now()}.jpg`)
+  } catch (err) {
+    error.value = err.message || 'Photo capture failed'
+    console.error('capturePhoto failed:', err)
+  } finally {
+    uploading.value = false
+  }
+}
 
-    if (!data?.ok || !data?.session) {
-      throw new Error(data?.error || 'Upload failed')
-    }
+async function handleFileChange(event) {
+  const file = event.target.files?.[0]
 
-    session.value = data.session
-    shotsRemaining.value = Number(data.session.shots_remaining || 0)
+  if (!file) return
 
-    if ('vibrate' in navigator) {
-      navigator.vibrate(50)
-    }
+  uploading.value = true
+  error.value = ''
 
-    if (shotsRemaining.value <= 0) {
-      router.push('/finished')
-    }
+  try {
+    await uploadBlob(file, file.name || `capture-${Date.now()}.jpg`)
   } catch (err) {
     error.value = err.message || 'Photo upload failed'
     console.error('handleFileChange failed:', err)
@@ -149,8 +249,16 @@ async function handleFileChange(event) {
   }
 }
 
-onMounted(() => {
-  startSession()
+onMounted(async () => {
+  await startSession()
+
+  if (!error.value) {
+    await startLiveCamera()
+  }
+})
+
+onBeforeUnmount(() => {
+  stopLiveCamera()
 })
 </script>
 
@@ -162,12 +270,15 @@ onMounted(() => {
           ← Back
         </RouterLink>
 
-        <button type="button" class="text-sm font-semibold text-[#d4d4d4]">
+        <button
+          type="button"
+          class="text-sm font-semibold text-[#d4d4d4]"
+        >
           ...
         </button>
       </div>
 
-      <div class="relative flex-1 overflow-hidden rounded-[2rem] bg-neutral-700">
+      <div class="relative flex-1 overflow-hidden rounded-[2rem] bg-neutral-900">
         <div
           v-if="loading"
           class="flex h-full items-center justify-center text-center text-xl font-semibold text-white"
@@ -176,30 +287,41 @@ onMounted(() => {
         </div>
 
         <div
-          v-else-if="error"
+          v-else-if="error && !uploading"
           class="flex h-full items-center justify-center px-6 text-center text-lg font-semibold text-red-300"
         >
           {{ error }}
         </div>
 
-        <div
-          v-else
-          class="flex h-full items-center justify-center text-center text-2xl font-semibold text-white"
-        >
-          <div>
-            <div>Camera screen</div>
-            <div v-if="uploading" class="mt-4 text-base text-[#d4d4d4]">
-              Uploading photo...
+        <div v-else class="relative h-full w-full">
+          <video
+            v-if="cameraReady && !usingFallbackCapture"
+            ref="videoRef"
+            autoplay
+            playsinline
+            muted
+            class="h-full w-full object-cover"
+          ></video>
+
+          <div
+            v-else
+            class="flex h-full items-center justify-center px-6 text-center text-lg text-[#d4d4d4]"
+          >
+            <div>
+              <p class="text-xl font-semibold text-white">Camera preview unavailable</p>
+              <p class="mt-3">
+                Tap the shutter button to use your phone camera instead.
+              </p>
             </div>
           </div>
-        </div>
 
-        <div
-          v-if="uploading"
-          class="absolute inset-0 flex items-center justify-center bg-black/40"
-        >
-          <div class="rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a]">
-            Uploading...
+          <div
+            v-if="uploading"
+            class="absolute inset-0 flex items-center justify-center bg-black/40"
+          >
+            <div class="rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a]">
+              Uploading...
+            </div>
           </div>
         </div>
       </div>
@@ -231,8 +353,8 @@ onMounted(() => {
           <button
             type="button"
             aria-label="Take photo"
-            @click="openCamera"
-            :disabled="shotsRemaining <= 0 || loading || uploading || !!error"
+            @click="capturePhoto"
+            :disabled="shotsRemaining <= 0 || loading || uploading"
             class="flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-[0_0_30px_rgba(255,255,255,0.15)] transition active:scale-95 disabled:opacity-50 disabled:active:scale-100"
           >
             <span class="block h-16 w-16 rounded-full border-[6px] border-[#1a1a1a]"></span>
@@ -250,6 +372,8 @@ onMounted(() => {
         class="hidden"
         @change="handleFileChange"
       />
+
+      <canvas ref="canvasRef" class="hidden"></canvas>
     </div>
   </main>
 </template>
