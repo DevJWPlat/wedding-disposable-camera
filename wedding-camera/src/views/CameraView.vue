@@ -13,15 +13,50 @@ const uploading = ref(false)
 const error = ref('')
 const session = ref(null)
 
+const STORAGE_KEYS = {
+  deviceToken: 'wedding_camera_device_token',
+  sessionId: 'wedding_camera_session_id',
+}
+
+const previousShotNumber = computed(() => {
+  return shotsRemaining.value < 25 ? shotsRemaining.value + 1 : null
+})
+
+const nextShotNumber = computed(() => {
+  return shotsRemaining.value > 0 ? shotsRemaining.value - 1 : null
+})
+
+async function parseJsonResponse(response) {
+  const text = await response.text()
+
+  let data = null
+
+  try {
+    data = text ? JSON.parse(text) : null
+  } catch {
+    throw new Error(text || 'Invalid server response')
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.error || `Request failed with status ${response.status}`)
+  }
+
+  return data
+}
+
 function getDeviceToken() {
-  let token = localStorage.getItem('wedding_camera_device_token')
+  let token = localStorage.getItem(STORAGE_KEYS.deviceToken)
 
   if (!token) {
     token = generateId()
-    localStorage.setItem('wedding_camera_device_token', token)
+    localStorage.setItem(STORAGE_KEYS.deviceToken, token)
   }
 
   return token
+}
+
+function storeSessionId(sessionId) {
+  localStorage.setItem(STORAGE_KEYS.sessionId, sessionId)
 }
 
 async function startSession() {
@@ -33,47 +68,32 @@ async function startSession() {
 
     const response = await fetch(`${API_BASE_URL}/api/session/start`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ deviceToken }),
     })
 
-    const text = await response.text()
+    const data = await parseJsonResponse(response)
 
-    if (!response.ok) {
-      throw new Error(text || 'Failed to start session')
-    }
-
-    const data = JSON.parse(text)
-
-    if (!data.ok) {
-      throw new Error(data.error || 'Failed to start session')
+    if (!data?.ok || !data?.session) {
+      throw new Error(data?.error || 'Failed to start session')
     }
 
     session.value = data.session
-    shotsRemaining.value = data.session.shots_remaining
+    shotsRemaining.value = Number(data.session.shots_remaining || 0)
+    storeSessionId(data.session.id)
 
     if (shotsRemaining.value <= 0) {
       router.push('/finished')
     }
   } catch (err) {
     error.value = err.message || 'Something went wrong'
-    console.error(err)
+    console.error('startSession failed:', err)
   } finally {
     loading.value = false
   }
 }
-
-onMounted(() => {
-  startSession()
-})
-
-const previousShotNumber = computed(() => {
-  return shotsRemaining.value < 25 ? shotsRemaining.value + 1 : null
-})
-
-const nextShotNumber = computed(() => {
-  return shotsRemaining.value > 0 ? shotsRemaining.value - 1 : null
-})
 
 function openCamera() {
   if (shotsRemaining.value <= 0 || loading.value || uploading.value) return
@@ -82,7 +102,14 @@ function openCamera() {
 
 async function handleFileChange(event) {
   const file = event.target.files?.[0]
-  if (!file || !session.value) return
+
+  if (!file) return
+
+  if (!session.value?.id) {
+    error.value = 'No active session found'
+    event.target.value = ''
+    return
+  }
 
   uploading.value = true
   error.value = ''
@@ -97,34 +124,34 @@ async function handleFileChange(event) {
       body: formData,
     })
 
-    const text = await response.text()
+    const data = await parseJsonResponse(response)
 
-    if (!response.ok) {
-      throw new Error(text || 'Failed to upload photo')
-    }
-
-    const data = JSON.parse(text)
-
-    if (!data.ok) {
-      throw new Error(data.error || 'Failed to upload photo')
+    if (!data?.ok || !data?.session) {
+      throw new Error(data?.error || 'Upload failed')
     }
 
     session.value = data.session
-    shotsRemaining.value = data.session.shots_remaining
+    shotsRemaining.value = Number(data.session.shots_remaining || 0)
 
-    navigator.vibrate?.(60)
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50)
+    }
 
     if (shotsRemaining.value <= 0) {
       router.push('/finished')
     }
   } catch (err) {
-    error.value = err.message || 'Upload failed'
-    console.error(err)
+    error.value = err.message || 'Photo upload failed'
+    console.error('handleFileChange failed:', err)
   } finally {
     uploading.value = false
     event.target.value = ''
   }
 }
+
+onMounted(() => {
+  startSession()
+})
 </script>
 
 <template>
@@ -140,19 +167,12 @@ async function handleFileChange(event) {
         </button>
       </div>
 
-      <div class="flex-1 overflow-hidden rounded-[2rem] bg-neutral-700">
+      <div class="relative flex-1 overflow-hidden rounded-[2rem] bg-neutral-700">
         <div
           v-if="loading"
           class="flex h-full items-center justify-center text-center text-xl font-semibold text-white"
         >
           Starting camera...
-        </div>
-
-        <div
-          v-else-if="uploading"
-          class="flex h-full items-center justify-center text-center text-xl font-semibold text-white"
-        >
-          Uploading photo...
         </div>
 
         <div
@@ -166,7 +186,21 @@ async function handleFileChange(event) {
           v-else
           class="flex h-full items-center justify-center text-center text-2xl font-semibold text-white"
         >
-          Camera screen
+          <div>
+            <div>Camera screen</div>
+            <div v-if="uploading" class="mt-4 text-base text-[#d4d4d4]">
+              Uploading photo...
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="uploading"
+          class="absolute inset-0 flex items-center justify-center bg-black/40"
+        >
+          <div class="rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a]">
+            Uploading...
+          </div>
         </div>
       </div>
 
@@ -175,7 +209,7 @@ async function handleFileChange(event) {
           <div class="relative h-[88px] w-[56px] overflow-hidden">
             <div
               v-if="nextShotNumber !== null"
-              class="absolute top-0 left-0 text-4xl font-bold leading-none text-white/20"
+              class="absolute bottom-0 left-0 text-4xl font-bold leading-none text-white/20"
             >
               {{ nextShotNumber }}
             </div>
@@ -188,7 +222,7 @@ async function handleFileChange(event) {
 
             <div
               v-if="previousShotNumber !== null"
-              class="absolute left-0 bottom-0 text-4xl font-bold leading-none text-white/20"
+              class="absolute left-0 top-0 text-4xl font-bold leading-none text-white/20"
             >
               {{ previousShotNumber }}
             </div>
