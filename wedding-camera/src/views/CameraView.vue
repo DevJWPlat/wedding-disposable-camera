@@ -18,6 +18,7 @@ const session = ref(null)
 
 const cameraReady = ref(false)
 const usingFallbackCapture = ref(false)
+const previewMessage = ref('Starting camera preview...')
 const streamRef = ref(null)
 
 const STORAGE_KEYS = {
@@ -103,31 +104,54 @@ async function startSession() {
 }
 
 async function startLiveCamera() {
-  if (!navigator.mediaDevices?.getUserMedia) {
+  previewMessage.value = 'Starting camera preview...'
+  cameraReady.value = false
+  usingFallbackCapture.value = false
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    previewMessage.value = 'Camera preview unavailable'
     usingFallbackCapture.value = true
     return
   }
 
   try {
+    stopLiveCamera()
+
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: { ideal: 'environment' },
+        facingMode: 'environment',
       },
       audio: false,
     })
 
     streamRef.value = stream
 
-    if (videoRef.value) {
-      videoRef.value.srcObject = stream
-      await videoRef.value.play()
-      cameraReady.value = true
-      usingFallbackCapture.value = false
+    if (!videoRef.value) {
+      previewMessage.value = 'Camera preview unavailable'
+      usingFallbackCapture.value = true
+      return
     }
+
+    videoRef.value.srcObject = stream
+    videoRef.value.setAttribute('playsinline', 'true')
+    videoRef.value.muted = true
+
+    await videoRef.value.play()
+
+    cameraReady.value = true
+    usingFallbackCapture.value = false
+    previewMessage.value = ''
   } catch (err) {
     console.error('Live camera failed, using fallback:', err)
-    usingFallbackCapture.value = true
+
     cameraReady.value = false
+    usingFallbackCapture.value = true
+
+    if (err?.name === 'NotAllowedError') {
+      previewMessage.value = 'Camera permission was denied'
+    } else {
+      previewMessage.value = 'Camera preview unavailable'
+    }
   }
 }
 
@@ -135,6 +159,10 @@ function stopLiveCamera() {
   if (streamRef.value) {
     streamRef.value.getTracks().forEach((track) => track.stop())
     streamRef.value = null
+  }
+
+  if (videoRef.value) {
+    videoRef.value.srcObject = null
   }
 }
 
@@ -308,7 +336,9 @@ onBeforeUnmount(() => {
             class="flex h-full items-center justify-center px-6 text-center text-lg text-[#d4d4d4]"
           >
             <div>
-              <p class="text-xl font-semibold text-white">Camera preview unavailable</p>
+              <p class="text-xl font-semibold text-white">
+                {{ previewMessage === 'Camera permission was denied' ? 'Camera permission denied' : 'Camera preview unavailable' }}
+              </p>
               <p class="mt-3">
                 Tap the shutter button to use your phone camera instead.
               </p>
