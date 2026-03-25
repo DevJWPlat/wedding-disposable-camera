@@ -1,35 +1,28 @@
 <script setup>
+import heartImage from '@/assets/images/heart.png'
 </script>
 
 <template>
     <main class="min-h-screen bg-[#1a1a1a] text-white">
         <div class="mx-auto flex min-h-screen w-full max-w-md flex-col px-6 py-8">
-            <div class="flex flex-1 flex-col items-center justify-center text-center">
-                <div
-                    class="mb-8 h-44 w-44 overflow-hidden rounded-full border-4 border-white bg-neutral-700"
-                >
-                    <div class="flex h-full items-center justify-center text-[#d4d4d4]">
-                    Photo
-                    </div>
-                </div>
+                <img :src="heartImage" alt="Heart image" class="w-full h-full object-cover">
         
-                <h1 class="text-5xl font-bold leading-tight">
+                <h1 class="font-bold leading-tight">
                     Welcome to<br />
-                    Abbie & Natt’s<br />
+                    Abbey & Natt's<br />
                     Wedding!
                 </h1>
         
-                <p class="mt-8 text-xl leading-relaxed text-[#d4d4d4] sm:text-2xl">
-                    Here is your disposable camera, you have
+                <p class="mt-8 text-l mb-8 leading-relaxed text-[#d4d4d4] sm:text-2xl text-center">
+                    This is your disposable camera. You have
                     <span class="font-bold text-white">25 shots</span>
-                    and just like a normal disposable, you won’t be able to see the photo you’ve taken
-                    straight away.
+                    to capture your favourite moments, all of which will be added to the newlyweds wedding album.
                 </p>
-            </div>
+
     
             <RouterLink
             to="/camera"
-            class="flex w-full items-center justify-center rounded-full bg-white px-6 py-5 text-xl font-semibold text-[#1a1a1a] transition active:scale-95"
+            class="w-full flex items-center justify-center rounded-full bg-white px-6 py-3 text-xl font-medium text-[16px] text-[#1a1a1a]"
             >
             Get Started →
             </RouterLink>
@@ -38,4 +31,10 @@
 </template>
 
 <style scoped>
+    h1 {
+        font-size: 38px;
+        text-align: center;
+        margin-top: 24px;
+    }
+
 </style>

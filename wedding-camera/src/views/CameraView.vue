@@ -165,97 +165,103 @@ onMounted(async () => {
 
 <template>
   <main class="min-h-screen bg-[#1a1a1a] text-white">
-    <div class="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6">
-      <div class="mb-6 flex items-center justify-between">
-        <RouterLink to="/welcome" class="text-sm font-semibold text-[#d4d4d4]">
-          ← Back
-        </RouterLink>
-
-        <button type="button" class="text-sm font-semibold text-[#d4d4d4]">
-          ...
-        </button>
-      </div>
-
-      <div class="relative flex-1 overflow-hidden rounded-[2rem] bg-[#111111]">
-        <div
-          v-if="loading"
-          class="flex h-full items-center justify-center px-6 text-center text-xl font-semibold text-white"
-        >
-          Starting camera...
-        </div>
-
-        <div
-          v-else-if="error && !uploading"
-          class="flex h-full items-center justify-center px-6 text-center text-lg font-semibold text-red-300"
-        >
-          {{ error }}
-        </div>
-
-        <div
-          v-else
-          class="flex h-full flex-col items-center justify-center px-8 text-center"
-        >
-          <p class="text-4xl font-bold text-white leading-tight">
-            Ready to capture
-          </p>
-          <p class="mt-6 text-2xl leading-relaxed text-[#d4d4d4]">
-            Tap the shutter button to use your phone camera.
-          </p>
-        </div>
-
-        <div
-          v-if="uploading"
-          class="absolute inset-0 flex items-center justify-center bg-black/50"
-        >
-          <div class="rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a]">
-            Uploading...
-          </div>
-        </div>
-
-        <div
-          v-if="captureFlash"
-          class="pointer-events-none absolute inset-0 bg-white/90"
-        ></div>
-      </div>
-
-      <div class="pb-2 pt-6">
-        <div class="flex items-end justify-between">
-          <div class="relative h-[88px] w-[56px] overflow-hidden">
-            <div
-              v-if="nextShotNumber !== null"
-              class="absolute bottom-0 left-0 text-4xl font-bold leading-none text-white/20"
-            >
-              {{ nextShotNumber }}
-            </div>
-
-            <div
-              class="absolute left-0 top-1/2 -translate-y-1/2 text-5xl font-bold leading-none text-white"
-            >
-              {{ shotsRemaining }}
-            </div>
-
-            <div
-              v-if="previousShotNumber !== null"
-              class="absolute left-0 top-0 text-4xl font-bold leading-none text-white/20"
-            >
-              {{ previousShotNumber }}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            aria-label="Take photo"
-            @click="openCamera"
-            :disabled="shotsRemaining <= 0 || loading || uploading"
-            class="flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-[0_0_30px_rgba(255,255,255,0.15)] transition active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+    <div class="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6 justify-between">
+      <div class="container">
+      
+        <div class="relative">
+          <div
+            v-if="loading"
+            class="flex h-full items-center justify-center px-6 text-center text-xl font-semibold text-white"
           >
-            <span class="block h-16 w-16 rounded-full border-[6px] border-[#1a1a1a]"></span>
-          </button>
+            Starting camera...
+          </div>
 
-          <div class="w-[72px]"></div>
+          <div
+            v-else-if="error && !uploading"
+            class="flex h-full items-center justify-center px-6 text-center text-lg font-semibold text-red-300"
+          >
+            {{ error }}
+          </div>
+
+          <div
+            v-else
+            class="flex h-full flex-col items-center pt-24 text-center"
+          >
+            <h1 class=" text-[30px] font-bold leading-[1.08] text-white">
+              Your disposable is ready to capture
+            </h1>
+
+            <p class="mt-8 leading-[1.45] text-[#d4d4d4]">
+              Tap the button below to get started
+            </p>
+
+            <p class="mt-2  leading-relaxed text-[#d4d4d4]">
+              (Don't forget you only have <span class="font-semibold text-white">25 shots</span>)
+            </p>
+          </div>
+
+          <div
+            v-if="uploading"
+            class="absolute inset-0 flex items-center justify-center bg-black/50"
+          >
+            <div class="rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a]">
+              Uploading...
+            </div>
+          </div>
+
+          <div
+            v-if="captureFlash"
+            class="pointer-events-none absolute inset-0 bg-white/90"
+          ></div>
         </div>
-      </div>
 
+        <div class="pt-8">
+          <div class="flex justify-center">
+            <div class="relative">
+              <div
+                v-if="previousShotNumber !== null"
+                class="absolute left-[18px] top-0 text-[4.2rem] font-bold italic leading-none text-white/15"
+              >
+                {{ previousShotNumber }}
+              </div>
+
+              <div class="flex items-end gap-3">
+                <span class="text-[60px] font-bold italic leading-none text-white">
+                  {{ shotsRemaining }}
+                </span>
+
+                <div class="pb-2 text-left leading-[0.9] relative w-[110px] top-[-17px]">
+                    <div class="text-[20px] font-bold italic uppercase text-white">
+                      SHOTS
+                    </div>
+                    <div class="text-[20px] font-bold italic uppercase text-white absolute left-[-3px]">
+                      REMAINING
+                    </div>
+                </div>
+              </div>
+
+              <div
+                v-if="nextShotNumber !== null"
+                class="absolute left-0 bottom-0 translate-y-[12px] text-[4.2rem] font-bold italic leading-none text-white/10"
+              >
+                {{ nextShotNumber }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <button
+        type="button"
+        aria-label="Take photo"
+        @click="openCamera"
+        :disabled="shotsRemaining <= 0 || loading || uploading"
+        class="mt-6 w-full flex gap-2 items-center justify-center rounded-full bg-white px-6 py-3 text-xl font-medium text-[16px] text-[#1a1a1a]"
+      >
+        <span>Take picture</span>
+        <span class="text-[15px]">📷</span>
+      </button>
+      
       <input
         ref="fileInput"
         type="file"
