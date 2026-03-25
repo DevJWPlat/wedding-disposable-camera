@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "cf:dev": "vite build && wrangler dev",
     "deploy": "vite build && wrangler deploy",
+    "d1:migrate:thumbnail": "wrangler d1 execute wedding-camera-db --remote --file=./migrations/0001_add_thumbnail_r2_key.sql",
     "lint": "run-s lint:*",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",

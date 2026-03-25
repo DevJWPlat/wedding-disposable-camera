@@ -4,6 +4,9 @@ import WelcomeView from '@/views/WelcomeView.vue'
 import CameraView from '@/views/CameraView.vue'
 import FinishedView from '@/views/FinishedView.vue'
 import AdminView from '@/views/AdminView.vue'
+import AnLoginView from '@/views/AnLoginView.vue'
+import AnCameraView from '@/views/AnCameraView.vue'
+import NotFoundView from '@/views/NotFoundView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -33,7 +36,34 @@ const router = createRouter({
       name: 'admin',
       component: AdminView,
     },
+    {
+      path: '/an',
+      name: 'an-login',
+      component: AnLoginView,
+    },
+    {
+      path: '/an/camera',
+      name: 'an-camera',
+      component: AnCameraView,
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: NotFoundView,
+    },
   ],
+})
+
+router.beforeEach((to, from, next) => {
+  if (to.path === '/an/camera') {
+    const isAuthed = sessionStorage.getItem('wedding_camera_an_auth') === 'true'
+    if (!isAuthed) {
+      next('/an')
+      return
+    }
+  }
+
+  next()
 })
 
 export default router

@@ -25,7 +25,11 @@ CREATE TABLE IF NOT EXISTS photos (
   event_id INTEGER NOT NULL,
   session_id TEXT NOT NULL,
   r2_key TEXT NOT NULL,
+  thumbnail_r2_key TEXT,
   uploaded_at TEXT NOT NULL,
   FOREIGN KEY (event_id) REFERENCES events(id),
   FOREIGN KEY (session_id) REFERENCES sessions(id)
 );
+
+-- Existing databases: add column once (ignore error if already applied)
+-- ALTER TABLE photos ADD COLUMN thumbnail_r2_key TEXT;

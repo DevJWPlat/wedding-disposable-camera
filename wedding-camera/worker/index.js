@@ -177,11 +177,13 @@ export default {
       try {
         const body = await request.json()
         const deviceToken = body?.deviceToken
-
+        const requestedMaxShots = Number(body?.maxShots || 25)
+        const maxShots = requestedMaxShots === 50 ? 50 : 25
+    
         if (!deviceToken) {
           return json({ ok: false, error: 'Missing deviceToken' }, 400)
         }
-
+    
         const existingSession = await env.DB.prepare(
           `
             SELECT
@@ -201,14 +203,14 @@ export default {
         )
           .bind(deviceToken)
           .first()
-
+    
         if (existingSession) {
           return json({
             ok: true,
             session: existingSession,
           })
         }
-
+    
         const event = await env.DB.prepare(
           `
             SELECT id, max_shots
@@ -218,14 +220,14 @@ export default {
             LIMIT 1
           `,
         ).first()
-
+    
         if (!event) {
           return json({ ok: false, error: 'No active event found' }, 404)
         }
-
+    
         const sessionId = crypto.randomUUID()
         const now = new Date().toISOString()
-
+    
         await env.DB.prepare(
           `
             INSERT INTO sessions (
@@ -242,9 +244,9 @@ export default {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           `,
         )
-          .bind(sessionId, event.id, deviceToken, null, 0, event.max_shots, 'active', now, now)
+          .bind(sessionId, event.id, deviceToken, null, 0, maxShots, 'active', now, now)
           .run()
-
+    
         const newSession = await env.DB.prepare(
           `
             SELECT
@@ -264,7 +266,7 @@ export default {
         )
           .bind(sessionId)
           .first()
-
+    
         return json({
           ok: true,
           session: newSession,
@@ -285,6 +287,7 @@ export default {
         const formData = await request.formData()
         const sessionId = formData.get('sessionId')
         const file = formData.get('photo')
+        const thumbnailFile = formData.get('thumbnail')
 
         if (!sessionId || typeof sessionId !== 'string') {
           return json({ ok: false, error: 'Missing sessionId' }, 400)
@@ -330,6 +333,16 @@ export default {
           },
         })
 
+        let thumbnailR2Key = null
+        if (thumbnailFile instanceof File && thumbnailFile.size > 0) {
+          thumbnailR2Key = `thumb/event-${session.event_id}/session-${session.id}/${photoId}.jpg`
+          await env.PHOTOS.put(thumbnailR2Key, thumbnailFile.stream(), {
+            httpMetadata: {
+              contentType: 'image/jpeg',
+            },
+          })
+        }
+
         await env.DB.prepare(
           `
             INSERT INTO photos (
@@ -337,12 +350,13 @@ export default {
               event_id,
               session_id,
               r2_key,
+              thumbnail_r2_key,
               uploaded_at
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
           `,
         )
-          .bind(photoId, session.event_id, session.id, r2Key, now)
+          .bind(photoId, session.event_id, session.id, r2Key, thumbnailR2Key, now)
           .run()
 
         const newShotsTaken = session.shots_taken + 1
@@ -510,6 +524,7 @@ export default {
               event_id,
               session_id,
               r2_key,
+              thumbnail_r2_key,
               uploaded_at
             FROM photos
             ORDER BY uploaded_at DESC
@@ -519,6 +534,9 @@ export default {
         const photos = (results.results || []).map((photo) => ({
           ...photo,
           imageUrl: `${url.origin}/api/admin/image?key=${encodeURIComponent(photo.r2_key)}`,
+          thumbnailUrl: photo.thumbnail_r2_key
+            ? `${url.origin}/api/admin/image?key=${encodeURIComponent(photo.thumbnail_r2_key)}`
+            : null,
         }))
 
         return json({
@@ -554,6 +572,7 @@ export default {
         object.writeHttpMetadata(headers)
         headers.set('etag', object.httpEtag)
         headers.set('Access-Control-Allow-Origin', '*')
+        headers.set('Cache-Control', 'public, max-age=31536000, immutable')
 
         return new Response(object.body, {
           headers,

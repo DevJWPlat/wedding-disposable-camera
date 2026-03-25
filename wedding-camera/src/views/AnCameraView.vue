@@ -8,7 +8,7 @@ const router = useRouter()
 
 const fileInput = ref(null)
 
-const shotsRemaining = ref(25)
+const shotsRemaining = ref(50)
 const loading = ref(true)
 const uploading = ref(false)
 const error = ref('')
@@ -16,25 +16,18 @@ const session = ref(null)
 const captureFlash = ref(false)
 
 const STORAGE_KEYS = {
-  deviceToken: 'wedding_camera_device_token',
-  sessionId: 'wedding_camera_session_id',
+  deviceToken: 'wedding_camera_an_device_token',
+  sessionId: 'wedding_camera_an_session_id',
 }
 
 const previousShotNumber = computed(() => {
-  return shotsRemaining.value < 25 ? shotsRemaining.value + 1 : null
+  return shotsRemaining.value < 50 ? shotsRemaining.value + 1 : null
 })
 
 const nextShotNumber = computed(() => {
   return shotsRemaining.value > 0 ? shotsRemaining.value - 1 : null
 })
 
-/**
- * Resize image client-side for admin gallery thumbnails (~400px wide, JPEG).
- * @param {File} file
- * @param {number} [maxWidth=400]
- * @param {number} [quality=0.7]
- * @returns {Promise<Blob>}
- */
 function createThumbnailBlob(file, maxWidth = 400, quality = 0.7) {
   return new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file)
@@ -99,7 +92,7 @@ function getDeviceToken() {
   let token = localStorage.getItem(STORAGE_KEYS.deviceToken)
 
   if (!token) {
-    token = generateId()
+    token = `an_${generateId()}`
     localStorage.setItem(STORAGE_KEYS.deviceToken, token)
   }
 
@@ -122,7 +115,11 @@ async function startSession() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ deviceToken }),
+      body: JSON.stringify({
+        deviceToken,
+        maxShots: 50,
+        cameraType: 'an',
+      }),
     })
 
     const data = await parseJsonResponse(response)
@@ -215,6 +212,12 @@ async function handleFileChange(event) {
 }
 
 onMounted(async () => {
+  const isAuthed = sessionStorage.getItem('wedding_camera_an_auth') === 'true'
+  if (!isAuthed) {
+    router.push('/an')
+    return
+  }
+
   await startSession()
 })
 </script>
@@ -227,18 +230,14 @@ onMounted(async () => {
       role="status"
       aria-live="polite"
     >
-      <div
-        class="absolute inset-0 bg-black/55"
-        aria-hidden="true"
-      />
+      <div class="absolute inset-0 bg-black/55" aria-hidden="true" />
       <div class="relative z-10 rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a]">
         Uploading...
       </div>
     </div>
 
-    <div class="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6 justify-between">
+    <div class="mx-auto flex min-h-screen w-full max-w-md flex-col justify-between px-5 py-6">
       <div class="container">
-      
         <div class="relative">
           <div
             v-if="loading"
@@ -258,7 +257,7 @@ onMounted(async () => {
             v-else
             class="flex h-full flex-col items-center pt-10 text-center"
           >
-            <h1 class=" text-[30px] font-bold leading-[1.08] text-white">
+            <h1 class="text-[30px] font-bold leading-[1.08] text-white">
               Your disposable is ready to capture
             </h1>
 
@@ -266,8 +265,8 @@ onMounted(async () => {
               Tap the button below to get started
             </p>
 
-            <p class="mt-2  leading-relaxed text-[#d4d4d4]">
-              (Don't forget you only have <span class="font-semibold text-white">25 shots</span>)
+            <p class="mt-2 leading-relaxed text-[#d4d4d4]">
+              (Don't forget you have <span class="font-semibold text-white">50 shots</span>)
             </p>
           </div>
 
@@ -281,6 +280,7 @@ onMounted(async () => {
           <div class="flex justify-center">
             <div class="relative">
               <div class="top-overlay"></div>
+
               <div
                 v-if="nextShotNumber !== null"
                 class="number next font-bold"
@@ -293,16 +293,18 @@ onMounted(async () => {
                   {{ shotsRemaining }}
                 </span>
 
-                <div class="pb-2 text-left leading-[0.9] relative w-[110px] top-[-17px]">
-                    <div class="text-[20px] font-bold italic uppercase text-white">
-                      SHOTS
-                    </div>
-                    <div class="text-[20px] font-bold italic uppercase text-white absolute left-[-3px]">
-                      REMAINING
-                    </div>
+                <div class="relative top-[-17px] w-[110px] pb-2 text-left leading-[0.9]">
+                  <div class="text-[20px] font-bold italic uppercase text-white">
+                    SHOTS
+                  </div>
+                  <div class="absolute left-[-3px] text-[20px] font-bold italic uppercase text-white">
+                    REMAINING
+                  </div>
                 </div>
               </div>
+
               <div class="bottom-overlay"></div>
+
               <div
                 v-if="previousShotNumber !== null"
                 class="number previous font-bold"
@@ -312,19 +314,19 @@ onMounted(async () => {
             </div>
           </div>
         </div>
-
       </div>
+
       <button
         type="button"
         aria-label="Take photo"
         @click="openCamera"
         :disabled="shotsRemaining <= 0 || loading || uploading"
-        class="mt-6 w-full flex gap-2 items-center justify-center rounded-full bg-white px-6 py-3 text-xl font-medium text-[16px] text-[#1a1a1a]"
+        class="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-[16px] font-medium text-[#1a1a1a]"
       >
         <span>Take picture</span>
         <span class="text-[15px]">📷</span>
       </button>
-      
+
       <input
         ref="fileInput"
         type="file"
@@ -341,11 +343,13 @@ onMounted(async () => {
 .number {
   font-size: 50px;
   position: absolute;
+
   &.next {
     top: -56px;
     left: 10px;
     font-style: italic;
   }
+
   &.previous {
     bottom: -56px;
     left: 10px;
@@ -361,6 +365,7 @@ onMounted(async () => {
   background: linear-gradient(360deg, rgba(255, 255, 255, 0) 0%, rgb(26, 26, 26) 75%);
   z-index: 1;
 }
+
 .bottom-overlay {
   position: absolute;
   bottom: -47px;
