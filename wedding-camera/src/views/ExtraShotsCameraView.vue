@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { API_BASE_URL } from '../utils/api.js'
 import { generateId } from '../utils/id.js'
 
@@ -16,8 +16,8 @@ const session = ref(null)
 const captureFlash = ref(false)
 
 const STORAGE_KEYS = {
-  deviceToken: 'wedding_camera_device_token',
-  sessionId: 'wedding_camera_session_id',
+  deviceToken: 'wedding_camera_extra_device_token',
+  sessionId: 'wedding_camera_extra_session_id',
 }
 
 const previousShotNumber = computed(() => {
@@ -28,13 +28,6 @@ const nextShotNumber = computed(() => {
   return shotsRemaining.value > 0 ? shotsRemaining.value - 1 : null
 })
 
-/**
- * Resize image client-side for admin gallery thumbnails (~400px wide, JPEG).
- * @param {File} file
- * @param {number} [maxWidth=400]
- * @param {number} [quality=0.7]
- * @returns {Promise<Blob>}
- */
 function createThumbnailBlob(file, maxWidth = 400, quality = 0.7) {
   return new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file)
@@ -42,19 +35,25 @@ function createThumbnailBlob(file, maxWidth = 400, quality = 0.7) {
 
     img.onload = () => {
       URL.revokeObjectURL(objectUrl)
+
       try {
         const scale = Math.min(1, maxWidth / img.naturalWidth)
         const width = Math.max(1, Math.round(img.naturalWidth * scale))
         const height = Math.max(1, Math.round(img.naturalHeight * scale))
         const canvas = document.createElement('canvas')
+
         canvas.width = width
         canvas.height = height
+
         const ctx = canvas.getContext('2d')
+
         if (!ctx) {
           reject(new Error('No canvas context'))
           return
         }
+
         ctx.drawImage(img, 0, 0, width, height)
+
         canvas.toBlob(
           (blob) => {
             if (blob) resolve(blob)
@@ -99,7 +98,7 @@ function getDeviceToken() {
   let token = localStorage.getItem(STORAGE_KEYS.deviceToken)
 
   if (!token) {
-    token = generateId()
+    token = `extra_${generateId()}`
     localStorage.setItem(STORAGE_KEYS.deviceToken, token)
   }
 
@@ -200,6 +199,7 @@ async function handleFileChange(event) {
 
   try {
     captureFlash.value = true
+
     setTimeout(() => {
       captureFlash.value = false
     }, 180)
@@ -227,18 +227,14 @@ onMounted(async () => {
       role="status"
       aria-live="polite"
     >
-      <div
-        class="absolute inset-0 bg-black/55"
-        aria-hidden="true"
-      />
+      <div class="absolute inset-0 bg-black/55" aria-hidden="true" />
       <div class="relative z-10 rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a]">
         Uploading...
       </div>
     </div>
 
-    <div class="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6 justify-between">
+    <div class="mx-auto flex min-h-screen w-full max-w-md flex-col justify-between px-5 py-6">
       <div class="container">
-      
         <div class="relative">
           <div
             v-if="loading"
@@ -258,16 +254,16 @@ onMounted(async () => {
             v-else
             class="flex h-full flex-col items-center pt-10 text-center"
           >
-            <h1 class=" text-[30px] font-bold leading-[1.08] text-white">
-              Your disposable is ready to capture
+            <h1 class="text-[30px] font-bold leading-[1.08] text-white">
+              Extra shots camera
             </h1>
 
             <p class="mt-8 leading-[1.45] text-[#d4d4d4]">
               Tap the button below to get started
             </p>
 
-            <p class="mt-2  leading-relaxed text-[#d4d4d4]">
-              (Don't forget you only have <span class="font-semibold text-white">{{ shotsRemaining }} shots</span>)
+            <p class="mt-2 leading-relaxed text-[#d4d4d4]">
+              (You have <span class="font-semibold text-white">{{ shotsRemaining }} extra shots</span>)
             </p>
           </div>
 
@@ -281,6 +277,7 @@ onMounted(async () => {
           <div class="flex justify-center">
             <div class="relative">
               <div class="top-overlay"></div>
+
               <div
                 v-if="nextShotNumber !== null"
                 class="number next font-bold"
@@ -293,16 +290,18 @@ onMounted(async () => {
                   {{ shotsRemaining }}
                 </span>
 
-                <div class="pb-2 text-left leading-[0.9] relative w-[110px] top-[-17px]">
-                    <div class="text-[20px] font-bold italic uppercase text-white">
-                      SHOTS
-                    </div>
-                    <div class="text-[20px] font-bold italic uppercase text-white absolute left-[-3px]">
-                      REMAINING
-                    </div>
+                <div class="relative top-[-17px] w-[110px] pb-2 text-left leading-[0.9]">
+                  <div class="text-[20px] font-bold italic uppercase text-white">
+                    SHOTS
+                  </div>
+                  <div class="absolute left-[-3px] text-[20px] font-bold italic uppercase text-white">
+                    REMAINING
+                  </div>
                 </div>
               </div>
+
               <div class="bottom-overlay"></div>
+
               <div
                 v-if="previousShotNumber !== null"
                 class="number previous font-bold"
@@ -312,19 +311,19 @@ onMounted(async () => {
             </div>
           </div>
         </div>
-
       </div>
+
       <button
         type="button"
         aria-label="Take photo"
         @click="openCamera"
         :disabled="shotsRemaining <= 0 || loading || uploading"
-        class="mt-6 w-[75%] max-w-md mx-auto flex gap-2 items-center justify-center rounded-full bg-white px-6 py-3 text-xl font-medium text-[16px] text-[#1a1a1a] fixed bottom-4 left-1/2 z-10 translate-x-[-50%]"
+        class="fixed bottom-4 left-1/2 z-10 mx-auto mt-6 flex w-[75%] max-w-md translate-x-[-50%] items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-[16px] font-medium text-[#1a1a1a]"
       >
         <span>Take picture</span>
         <span class="text-[15px]">📷</span>
       </button>
-      
+
       <input
         ref="fileInput"
         type="file"
@@ -341,11 +340,13 @@ onMounted(async () => {
 .number {
   font-size: 50px;
   position: absolute;
+
   &.next {
     top: -56px;
     left: 10px;
     font-style: italic;
   }
+
   &.previous {
     bottom: -56px;
     left: 10px;
@@ -361,6 +362,7 @@ onMounted(async () => {
   background: linear-gradient(360deg, rgba(255, 255, 255, 0) 0%, rgb(26, 26, 26) 75%);
   z-index: 1;
 }
+
 .bottom-overlay {
   position: absolute;
   bottom: -47px;

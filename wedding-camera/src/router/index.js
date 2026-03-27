@@ -7,6 +7,7 @@ import AdminView from '@/views/AdminView.vue'
 import AnLoginView from '@/views/AnLoginView.vue'
 import AnCameraView from '@/views/AnCameraView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
+import ExtraShotsCameraView from '@/views/ExtraShotsCameraView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -45,6 +46,11 @@ const router = createRouter({
       path: '/an/camera',
       name: 'an-camera',
       component: AnCameraView,
+    },
+    {
+      path: '/extra-shots-camera',
+      name: 'extra-shots-camera',
+      component: ExtraShotsCameraView,
     },
     {
       path: '/:pathMatch(.*)*',

@@ -7,9 +7,9 @@ import coupleImage from '@/assets/images/couple.png'
         <div class="container mx-auto flex w-full max-w-md flex-col justify-end relative height-[100vh]" >
             <img :src="coupleImage" alt="Couple image" class="w-full h-full object-cover absolute top-0 left-0">
             <div class="overlay absolute bottom-0 left-0 w-full"></div>
-            <div class="text-container px-6 pb-12 relative z-10 w-full min-w-0 max-w-full">
+            <div class="text-container px-6 pb-12 fixed bottom-2 left-0 z-10 w-full min-w-0 max-w-full">
                 <div class="mb-8 border-b border-white/20 pb-8">
-                    <h1 class="">Abbie & Natt</h1>
+                    <h1 class="">Abbey & Natt</h1>
                     <p class="text-[#d4d4d4] text-center">04.04.2026</p>
                 </div>
         
