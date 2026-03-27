@@ -9,7 +9,7 @@ import heartImage from '@/assets/images/heart.png'
         
                 <h1 class="font-bold leading-tight">
                     Welcome to<br />
-                    Abbey & Natt's<br />
+                    Abbey & Nat's<br />
                     Wedding!
                 </h1>
         
