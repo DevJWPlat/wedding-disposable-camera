@@ -585,14 +585,18 @@ onBeforeUnmount(() => {
             class="flex flex-1 flex-col justify-center text-center"
           >
             <div class="mb-14">
-              <div class="text-7xl font-extrabold leading-none">{{ displayParticipants }}</div>
+              <div class="text-7xl font-extrabold leading-none" style="text-shadow: 0 0 20px #2563eb, 0 0 40px #2563eb;">
+                {{ displayParticipants }}
+              </div>
               <div class="mt-3 text-2xl font-bold uppercase tracking-[0.18em] text-[#d4d4d4]">
                 Participants
               </div>
             </div>
 
             <div class="mb-14">
-              <div class="text-7xl font-extrabold leading-none">{{ displayPhotosCount }}</div>
+              <div class="text-7xl font-extrabold leading-none" style="text-shadow: 0 0 20px #a855f7, 0 0 40px #a855f7;">
+                {{ displayPhotosCount }}
+              </div>
               <div class="mt-3 text-2xl font-bold uppercase tracking-[0.18em] text-[#d4d4d4]">
                 Photos
               </div>

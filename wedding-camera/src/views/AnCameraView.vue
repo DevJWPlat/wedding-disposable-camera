@@ -8,7 +8,7 @@ const router = useRouter()
 
 const fileInput = ref(null)
 
-const shotsRemaining = ref(50)
+const shotsRemaining = ref(100)
 const loading = ref(true)
 const uploading = ref(false)
 const error = ref('')
@@ -16,12 +16,12 @@ const session = ref(null)
 const captureFlash = ref(false)
 
 const STORAGE_KEYS = {
-  deviceToken: 'wedding_camera_an_device_token',
-  sessionId: 'wedding_camera_an_session_id',
+  deviceToken: 'wedding_camera_an_100_device_token',
+  sessionId: 'wedding_camera_an_100_session_id',
 }
 
 const previousShotNumber = computed(() => {
-  return shotsRemaining.value < 50 ? shotsRemaining.value + 1 : null
+  return shotsRemaining.value < 100 ? shotsRemaining.value + 1 : null
 })
 
 const nextShotNumber = computed(() => {
@@ -117,7 +117,7 @@ async function startSession() {
       },
       body: JSON.stringify({
         deviceToken,
-        maxShots: 50,
+        maxShots: 100,
         cameraType: 'an',
       }),
     })
@@ -258,7 +258,7 @@ onMounted(async () => {
             class="flex h-full flex-col items-center pt-10 text-center"
           >
             <h1 class="text-[30px] font-bold leading-[1.08] text-white">
-              Your disposable is ready to capture
+              Peter's Personal Camera
             </h1>
 
             <p class="mt-8 leading-[1.45] text-[#d4d4d4]">
@@ -266,7 +266,7 @@ onMounted(async () => {
             </p>
 
             <p class="mt-2 leading-relaxed text-[#d4d4d4]">
-              (Don't forget you have <span class="font-semibold text-white">50 shots</span>)
+              (Don't forget you have <span class="font-semibold text-white">{{ shotsRemaining }} shots</span>)
             </p>
           </div>
 
@@ -321,7 +321,7 @@ onMounted(async () => {
         aria-label="Take photo"
         @click="openCamera"
         :disabled="shotsRemaining <= 0 || loading || uploading"
-        class="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-[16px] font-medium text-[#1a1a1a]"
+        class="fixed bottom-4 left-1/2 z-10 mx-auto mt-6 flex w-[75%] max-w-md translate-x-[-50%] items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-[16px] font-medium text-[#1a1a1a]"
       >
         <span>Take picture</span>
         <span class="text-[15px]">📷</span>

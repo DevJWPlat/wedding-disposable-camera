@@ -11,9 +11,9 @@ const error = ref('')
 function handleLogin() {
   error.value = ''
 
-  if (username.value === 'Josh' && password.value === 'Peter') {
+  if (username.value === 'Peter' && password.value === 'Dale') {
     sessionStorage.setItem('wedding_camera_an_auth', 'true')
-    router.push('/an/camera')
+    router.push('/pd/peters-camera')
     return
   }
 
@@ -30,7 +30,7 @@ function handleLogin() {
                 </h1>
 
                 <p class="mt-4 leading-[1.45] text-[#d4d4d4]">
-                Sign in to access the 50-shot camera.
+                Sign in to access Peter's personal camera.
                 </p>
             </div>
 

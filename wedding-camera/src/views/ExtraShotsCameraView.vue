@@ -255,7 +255,7 @@ onMounted(async () => {
             class="flex h-full flex-col items-center pt-10 text-center"
           >
             <h1 class="text-[30px] font-bold leading-[1.08] text-white">
-              Extra shots camera
+              Evening camera
             </h1>
 
             <p class="mt-8 leading-[1.45] text-[#d4d4d4]">

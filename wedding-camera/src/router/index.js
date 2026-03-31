@@ -33,17 +33,17 @@ const router = createRouter({
       component: FinishedView,
     },
     {
-      path: '/admin',
+      path: '/admin', 
       name: 'admin',
       component: AdminView,
     },
     {
-      path: '/an',
+      path: '/pd',
       name: 'an-login',
       component: AnLoginView,
     },
     {
-      path: '/an/camera',
+      path: '/pd/peters-camera',
       name: 'an-camera',
       component: AnCameraView,
     },
@@ -61,10 +61,10 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  if (to.path === '/an/camera') {
+  if (to.path === '/pd/peters-camera') {
     const isAuthed = sessionStorage.getItem('wedding_camera_an_auth') === 'true'
     if (!isAuthed) {
-      next('/an')
+      next('/pd')
       return
     }
   }

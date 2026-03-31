@@ -178,7 +178,7 @@ export default {
         const body = await request.json()
         const deviceToken = body?.deviceToken
         const requestedMaxShots = Number(body?.maxShots || 25)
-        const maxShots = requestedMaxShots === 50 ? 50 : 25
+        const maxShots = requestedMaxShots === 100 ? 100 : 25
     
         if (!deviceToken) {
           return json({ ok: false, error: 'Missing deviceToken' }, 400)

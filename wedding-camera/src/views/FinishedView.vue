@@ -23,7 +23,7 @@ function resetForTesting() {
       </div>
 
       <p class="mt-10 text-xl leading-relaxed text-[#d4d4d4] sm:text-2xl">
-        Thank you for taking part. We’ll share the photos with you soon.
+        Thank you for taking part. We'll share the photos with you soon.
       </p>
 
       <button
